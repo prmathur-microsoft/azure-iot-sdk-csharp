@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -104,8 +105,9 @@ namespace Microsoft.Azure.Devices.Provisioning.Client.Transport
                 cancellationToken.ThrowIfCancellationRequested();
 
                 string correlationId = Guid.NewGuid().ToString();
-                RegistrationOperationStatus operation =
-                    await RegisterDeviceAsync(connection, correlationId).ConfigureAwait(false);
+                DeviceRegistration deviceRegistration = message.Data != null ? new DeviceRegistration { Payload = message.Data } : null;
+
+                RegistrationOperationStatus operation = await RegisterDeviceAsync(connection, correlationId, deviceRegistration).ConfigureAwait(false);
 
                 // Poll with operationId until registration complete.
                 int attempts = 0;
@@ -177,9 +179,21 @@ namespace Microsoft.Azure.Devices.Provisioning.Client.Transport
 
         private async Task<RegistrationOperationStatus> RegisterDeviceAsync(
             AmqpClientConnection client,
-            string correlationId)
+            string correlationId,
+            DeviceRegistration deviceRegistration)
         {
-            var amqpMessage = AmqpMessage.Create(new MemoryStream(), true);
+
+			AmqpValue value = null; 
+			if(deviceRegistration == null)
+			{
+                value = new AmqpValue() { Value = DeviceOperations.Register };
+			}
+			else
+			{
+                value = new AmqpValue() { Value = System.Text.Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(deviceRegistration)) };
+			}
+			
+            var amqpMessage = AmqpMessage.Create(value);
             amqpMessage.Properties.CorrelationId = correlationId;
             amqpMessage.ApplicationProperties.Map[MessageApplicationPropertyNames.OperationType] =
                 DeviceOperations.Register;
@@ -227,7 +241,25 @@ namespace Microsoft.Azure.Devices.Provisioning.Client.Transport
             var substatus = ProvisioningRegistrationSubstatusType.InitialAssignment;
             Enum.TryParse(result.Substatus, true, out substatus);
 
-            return new DeviceRegistrationResult(
+            if (!String.IsNullOrEmpty(result.Payload))
+            {
+                return new DeviceRegistrationResult(
+                result.RegistrationId,
+                result.CreatedDateTimeUtc,
+                result.AssignedHub,
+                result.DeviceId,
+                status,
+                substatus,
+                result.GenerationId,
+                result.LastUpdatedDateTimeUtc,
+                result.ErrorCode == null ? 0 : (int)result.ErrorCode,
+                result.ErrorMessage,
+                result.Etag,
+                Encoding.ASCII.GetBytes(result.Payload));
+            }
+            else
+            {
+                return new DeviceRegistrationResult(
                 result.RegistrationId,
                 result.CreatedDateTimeUtc,
                 result.AssignedHub,
@@ -239,6 +271,9 @@ namespace Microsoft.Azure.Devices.Provisioning.Client.Transport
                 result.ErrorCode == null ? 0 : (int)result.ErrorCode,
                 result.ErrorMessage,
                 result.Etag);
+            }
+
+            
         }
 
         private void ValidateOutcome(Outcome outcome)

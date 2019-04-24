@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.E2ETests
         private const int FailingTimeoutMiliseconds = 10 * 1000;
         private static string s_globalDeviceEndpoint = Configuration.Provisioning.GlobalDeviceEndpoint;
         private const string InvalidIDScope = "0neFFFFFFFF";
+        private byte[] TEST_DATA_BYTES = Encoding.ASCII.GetBytes("{\"testKey\":\"testValue\"}");
         private const string InvalidGlobalAddress = "httpbin.org";
         private static string ProxyServerAddress = Configuration.IoTHub.ProxyServerAddress;
         private readonly string IdPrefix = $"e2e-{nameof(ProvisioningE2ETests).ToLower()}-";
@@ -523,7 +524,7 @@ namespace Microsoft.Azure.Devices.E2ETests
                     transport);
                 var cts = new CancellationTokenSource(PassingTimeoutMiliseconds);
 
-                DeviceRegistrationResult result = await provClient.RegisterAsync(cts.Token).ConfigureAwait(false);
+                DeviceRegistrationResult result = await provClient.RegisterAsync(TEST_DATA_BYTES, cts.Token).ConfigureAwait(false);
                 ValidateDeviceRegistrationResult(result);
                 Assert.AreEqual(expectedDestinationHub, result.AssignedHub);
 
@@ -931,6 +932,8 @@ namespace Microsoft.Azure.Devices.E2ETests
             Assert.AreEqual(ProvisioningRegistrationStatusType.Assigned, result.Status);
             Assert.IsNotNull(result.AssignedHub);
             Assert.IsNotNull(result.DeviceId);
+            Assert.IsNotNull(result.ReturnData);
+            Assert.AreEqual(Encoding.ASCII.GetBytes("testData"), result.ReturnData);
         }
       
         public static async Task DeleteCreatedEnrollment(EnrollmentType? enrollmentType, ProvisioningServiceClient provisioningServiceClient, SecurityProvider security, string groupId)

@@ -32,7 +32,8 @@ namespace Microsoft.Azure.Devices.Provisioning.Client.Transport.Models
             DateTime? lastUpdatedDateTimeUtc = default(DateTime?),
             int? errorCode = default(int?),
             string errorMessage = default(string),
-            string etag = default(string))
+            string etag = default(string),
+            string payload = default(string))
         {
             Tpm = tpm;
             X509 = x509;
@@ -48,6 +49,7 @@ namespace Microsoft.Azure.Devices.Provisioning.Client.Transport.Models
             ErrorCode = errorCode;
             ErrorMessage = errorMessage;
             Etag = etag;
+            Payload = payload;
             CustomInit();
         }
 
@@ -130,5 +132,9 @@ namespace Microsoft.Azure.Devices.Provisioning.Client.Transport.Models
         [JsonProperty(PropertyName = "etag")]
         public string Etag { get; set; }
 
+        /// <summary>
+        /// </summary>
+        [JsonProperty(PropertyName = "payload")]
+        public string Payload { get; set; }
     }
 }

@@ -2,6 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Azure.Devices.Provisioning.Client
 {
@@ -58,6 +60,36 @@ namespace Microsoft.Azure.Devices.Provisioning.Client
             Etag = etag;
         }
 
+            /// <summary>
+			///. Constructor to allow return data
+            /// </summary>
+            public DeviceRegistrationResult(
+            string registrationId,
+            DateTime? createdDateTimeUtc,
+            string assignedHub,
+            string deviceId,
+            ProvisioningRegistrationStatusType status,
+            ProvisioningRegistrationSubstatusType substatus,
+            string generationId,
+            DateTime? lastUpdatedDateTimeUtc,
+            int errorCode,
+            string errorMessage,
+            string etag,
+			byte[] returnData)
+        {
+            RegistrationId = registrationId;
+            CreatedDateTimeUtc = createdDateTimeUtc;
+            AssignedHub = assignedHub;
+            DeviceId = deviceId;
+            Status = status;
+            Substatus = substatus;
+            GenerationId = generationId;
+            LastUpdatedDateTimeUtc = lastUpdatedDateTimeUtc;
+            ErrorCode = errorCode;
+            ErrorMessage = errorMessage;
+            Etag = etag;
+			ReturnData = returnData;
+        }
         /// <summary>
         /// The registration id.
         /// </summary>
@@ -112,5 +144,10 @@ namespace Microsoft.Azure.Devices.Provisioning.Client
         /// The Etag.
         /// </summary>
         public string Etag { get; protected set; }
+
+        /// <summary>
+        /// The Custom data returned from the webhook to the device.
+        /// </summary>
+        public IReadOnlyCollection<byte> ReturnData { get; private set; }
     }
 }
