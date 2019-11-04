@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Provisioning.Client.Transport
         private const string RegisterTopic = "$dps/registrations/PUT/iotdps-register/?$rid={0}";
         private const string GetOperationsTopic = "$dps/registrations/GET/iotdps-get-operationstatus/?$rid={0}&operationId={1}";
         private static readonly Regex RegistrationStatusTopicRegex = new Regex("^\\$dps/registrations/res/(.*?)/\\?\\$rid=(.*?)$", RegexOptions.Compiled);
-        private static readonly TimeSpan s_defaultOperationPoolingIntervalMilliseconds = TimeSpan.FromSeconds(2);
+        private static readonly TimeSpan s_defaultOperationPoolingInterval = TimeSpan.FromSeconds(2);
 
         private const string Registration = "registration";
 
@@ -323,9 +323,15 @@ namespace Microsoft.Azure.Devices.Provisioning.Client.Transport
                 {
                     if (statusCode >= HttpStatusCode.BadRequest)
                     {
-                        var errorDetails = JsonConvert.DeserializeObject<ProvisioningErrorDetails>(jsonData);
+                        var errorDetails = JsonConvert.DeserializeObject<ProvisioningErrorDetailsMqtt>(jsonData);
 
                         bool isTransient = statusCode >= HttpStatusCode.InternalServerError || (int)statusCode == 429;
+
+                        if (isTransient)
+                        {
+                            errorDetails.RetryAfter = ProvisioningErrorDetailsMqtt.GetRetryAfterFromTopic(topicName, s_defaultOperationPoolingInterval);
+                        }
+
                         await FailWithExceptionAsync(
                              context,
                              new ProvisioningTransportException(
@@ -356,11 +362,12 @@ namespace Microsoft.Azure.Devices.Provisioning.Client.Transport
                 //"{\"operationId\":\"0.indcertdevice1.e50c0fa7-8b9b-4b3d-8374-02d71377886f\",\"status\":\"assigning\"}"
                 var operation = JsonConvert.DeserializeObject<RegistrationOperationStatus>(jsonData);
                 operationId = operation.OperationId;
+                operation.RetryAfter = ProvisioningErrorDetailsMqtt.GetRetryAfterFromTopic(packet.TopicName, s_defaultOperationPoolingInterval);
 
                 if (string.CompareOrdinal(operation.Status, RegistrationOperationStatus.OperationStatusAssigning) == 0 ||
                     string.CompareOrdinal(operation.Status, RegistrationOperationStatus.OperationStatusUnassigned) == 0)
                 {
-                    await Task.Delay(s_defaultOperationPoolingIntervalMilliseconds).ConfigureAwait(true);
+                    await Task.Delay(operation.RetryAfter ?? RetryJitter.GenerateDelayWithJitterForRetry(s_defaultOperationPoolingInterval)).ConfigureAwait(true);
                     ChangeState(State.WaitForStatus, State.WaitForPubAck);
                     await PublishGetOperationAsync(context, operationId).ConfigureAwait(true);
                 }

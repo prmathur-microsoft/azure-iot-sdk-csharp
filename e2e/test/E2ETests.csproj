@@ -11,7 +11,7 @@
     <DefaultItemExcludes>config/**;netstandard13/**;netstandard20/**;net451/**;$(DefaultItemExcludes)</DefaultItemExcludes>
     <RootDir>$(MSBuildProjectDirectory)\..\..</RootDir>
   </PropertyGroup>
-  
+
   <PropertyGroup>
     <CommonTest>$(RootDir)\common\test</CommonTest>
   </PropertyGroup>

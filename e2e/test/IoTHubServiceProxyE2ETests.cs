@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.E2ETests
             }
         }
 
-        public static (Message message, string messageId, string payload, string p1Value) ComposeD2CTestMessage()
+        private (Message message, string messageId, string payload, string p1Value) ComposeD2CTestMessage()
         {
             var messageId = Guid.NewGuid().ToString();
             var payload = Guid.NewGuid().ToString();
